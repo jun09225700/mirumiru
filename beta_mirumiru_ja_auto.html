@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>βミルミル</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Inter:wght@300;400;500;600&display=swap');
+:root{
+  --bg:#05080f;--surf:#11161f;--surf2:#161c28;--bd:#1e2840;--bd2:#243350;
+  --cyan:#00D4FF;--teal:#26D7B4;--amber:#FFB300;--red:#FF4560;--green:#00E396;
+  --txt:#C8D8F0;--txt2:#7A9BC0;--txt3:#3A5070;
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:13px;min-height:100dvh;overflow-x:hidden;}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:0 14px;height:46px;background:var(--surf);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:100;}
+.logo{display:flex;align-items:center;gap:8px;}
+.logo-mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,var(--cyan),var(--teal));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:600;font-size:12px;color:#000;}
+.logo-name{font-size:14px;font-weight:600;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.clock{font-family:var(--mono);font-size:11px;color:var(--txt2);letter-spacing:1px;}
+#ble-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;border:1px solid var(--bd2);background:var(--surf2);color:var(--txt);font-size:11px;font-family:var(--sans);cursor:pointer;transition:all .2s;}
+#ble-btn.connected{border-color:var(--green);color:var(--green);background:rgba(0,227,150,.07);}
+#ble-btn.scanning{border-color:var(--amber);color:var(--amber);background:rgba(255,179,0,.07);}
+.ble-dot{width:6px;height:6px;border-radius:50%;background:var(--txt3);flex-shrink:0;}
+#ble-btn.connected .ble-dot{background:var(--green);box-shadow:0 0 5px var(--green);}
+#ble-btn.scanning  .ble-dot{background:var(--amber);animation:blink .7s infinite;}
+
+/* ── PHASE ROW ── */
+.phase-row{display:flex;gap:5px;padding:7px 14px;background:var(--surf);border-bottom:1px solid var(--bd);overflow-x:auto;scrollbar-width:none;}
+.phase-row::-webkit-scrollbar{display:none;}
+.pbadge{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 9px;border-radius:20px;white-space:nowrap;border:1px solid var(--bd2);color:var(--txt3);background:var(--surf2);flex-shrink:0;}
+.pbadge.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,.08);}
+.pbadge.done{border-color:var(--green);color:var(--green);background:rgba(0,227,150,.06);}
+
+/* ── CALIB SECTION ── */
+#calib-section{background:var(--surf);border-bottom:1px solid var(--bd);padding:12px 14px;}
+.sec-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--bd);}
+.calib-step{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);margin-bottom:6px;transition:all .3s;}
+.calib-step:last-child{margin-bottom:0;}
+.calib-step.done{border-color:var(--green);background:rgba(0,227,150,.04);}
+.calib-step.active{border-color:var(--cyan);background:rgba(0,212,255,.05);}
+.calib-step.wait{opacity:.45;}
+.s-icon{width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:1px;border:1.5px solid var(--bd2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:var(--txt2);transition:all .3s;}
+.calib-step.done .s-icon{border-color:var(--green);color:var(--green);}
+.calib-step.active .s-icon{border-color:var(--cyan);color:var(--cyan);animation:pring .9s infinite;}
+.s-body{flex:1;}
+.s-title{font-size:11px;font-weight:500;margin-bottom:2px;}
+.s-desc{font-size:10px;color:var(--txt2);line-height:1.4;}
+.s-bar{height:3px;background:var(--bd);border-radius:2px;margin-top:6px;overflow:hidden;}
+.s-fill{height:100%;border-radius:2px;background:var(--cyan);width:0%;transition:width .5s;}
+.calib-step.done .s-fill{background:var(--green);width:100%!important;}
+
+/* ── MONITOR SECTION (hidden until running) ── */
+#monitor-section{display:none;}
+
+/* ── RESERVE BAR ── */
+.reserve-wrap{background:var(--surf);border-bottom:1px solid var(--bd);padding:10px 14px 8px;}
+.res-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.res-label{font-family:var(--mono);font-size:10px;color:var(--txt2);}
+.res-value{font-family:var(--mono);font-size:13px;font-weight:600;color:#5DCAA5;}
+.res-bar{height:12px;background:#1a1f2e;border-radius:999px;overflow:hidden;}
+.res-fill{height:100%;background:linear-gradient(90deg,#1D9E75,#5DCAA5);transition:width .4s,background .4s;border-radius:999px;}
+
+/* ── CHARACTER CANVAS ── */
+.char-wrap{background:#0a0f18;position:relative;}
+#beta-cv{width:100%;display:block;}
+
+/* ── PPG GRAPH ── */
+.ppg-wrap{background:var(--surf);border-bottom:1px solid var(--bd);padding:8px 14px 6px;}
+.graph-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.graph-ttl{font-family:var(--mono);font-size:9px;color:var(--txt2);}
+.legend{display:flex;gap:10px;}
+.leg{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8px;color:var(--txt2);}
+.leg-ln{width:14px;height:2px;border-radius:1px;}
+#ppg-cv{width:100%;display:block;background:#0a0f18;border-radius:8px;}
+
+/* ── ALERT BAR ── */
+.alert-bar{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:var(--surf);border-bottom:1px solid var(--bd);
+  min-height:44px;
+}
+.alert-bar.ok    {border-left:3px solid var(--green);}
+.alert-bar.warn  {border-left:3px solid var(--amber);}
+.alert-bar.danger{border-left:3px solid var(--red);}
+.ab-icon{font-size:18px;flex-shrink:0;}
+.ab-body{flex:1;}
+.ab-main{font-size:13px;font-weight:600;}
+.alert-bar.ok     .ab-main{color:var(--green);}
+.alert-bar.warn   .ab-main{color:var(--amber);}
+.alert-bar.danger .ab-main{color:var(--red);}
+.ab-sub{font-size:10px;color:var(--txt2);margin-top:1px;}
+.ab-badge{font-family:var(--mono);font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;flex-shrink:0;}
+.alert-bar.ok     .ab-badge{background:rgba(0,227,150,.12);color:var(--green);}
+.alert-bar.warn   .ab-badge{background:rgba(255,179,0,.12);color:var(--amber);}
+.alert-bar.danger .ab-badge{background:rgba(255,69,96,.12);color:var(--red);}
+
+/* ── STATS ROW ── */
+.stats-wrap{background:var(--surf);border-bottom:1px solid var(--bd);padding:8px 14px;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
+.stat{background:var(--surf2);border:1px solid var(--bd);border-radius:6px;padding:7px 5px;text-align:center;}
+.stat-l{font-size:8px;color:var(--txt3);letter-spacing:.8px;text-transform:uppercase;}
+.stat-v{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--txt);margin-top:2px;}
+
+/* ── COLLAPSIBLE BOTTOM ── */
+.col-toggle{width:100%;padding:10px 14px;background:var(--surf2);border:none;border-bottom:1px solid var(--bd);color:var(--txt2);font-family:var(--sans);font-size:11px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+.col-icon{font-size:11px;transition:transform .2s;}
+.col-icon.open{transform:rotate(180deg);}
+.col-body{display:none;background:var(--surf);border-bottom:1px solid var(--bd);padding:12px 14px;}
+.col-body.open{display:block;}
+.alert-set-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.alert-set-row:last-child{margin-bottom:0;}
+.alert-set-row label{font-size:11px;color:var(--txt2);flex:1;line-height:1.3;}
+.alert-set-row input[type=number]{width:56px;padding:6px 6px;background:var(--surf2);border:1px solid var(--bd2);color:var(--txt);border-radius:5px;font-family:var(--mono);font-size:11px;text-align:right;}
+.alert-set-row input:focus{outline:none;border-color:var(--cyan);}
+.au{font-size:9px;color:var(--txt3);width:30px;}
+
+/* ── BUTTONS ── */
+.btn-row{display:flex;gap:6px;padding:12px 14px;background:var(--surf);border-bottom:1px solid var(--bd);}
+.btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:11px 6px;border-radius:8px;border:1px solid var(--bd2);background:var(--surf2);color:var(--txt);font-size:11px;font-family:var(--sans);cursor:pointer;transition:all .2s;min-height:44px;}
+.btn.primary{border-color:var(--cyan);background:rgba(0,212,255,.07);color:var(--cyan);}
+.btn.danger{border-color:var(--red);background:rgba(255,69,96,.05);color:var(--red);}
+.btn:active{transform:scale(.97);}
+
+/* ── DATA COUNT ── */
+.data-row{padding:6px 14px;background:var(--surf);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;color:var(--txt3);}
+#rec-dot{width:5px;height:5px;border-radius:50%;background:var(--red);display:none;animation:blink .8s infinite;}
+
+/* ── BLE MODAL ── */
+#ble-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:flex-end;justify-content:center;}
+#ble-modal.open{display:flex;}
+.modal{background:var(--surf);border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:440px;border:1px solid var(--bd2);}
+.modal-ttl{font-size:15px;font-weight:600;margin-bottom:3px;}
+.modal-sub{font-size:11px;color:var(--txt2);margin-bottom:16px;}
+.scan-ind{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--amber);font-family:var(--mono);margin-bottom:12px;}
+.scan-dot{width:5px;height:5px;border-radius:50%;background:var(--amber);animation:blink .6s infinite;}
+.dev-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.dev-item{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--bd);border-radius:8px;cursor:pointer;transition:all .2s;background:var(--surf2);min-height:56px;}
+.dev-item:active{border-color:var(--cyan);}
+.dev-name{font-size:12px;font-weight:500;}
+.dev-mac{font-family:var(--mono);font-size:9px;color:var(--txt2);}
+.dev-rssi{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--txt3);}
+
+/* ── TOAST ── */
+#toast-container{position:fixed;top:54px;right:10px;left:10px;display:flex;flex-direction:column;gap:5px;z-index:200;pointer-events:none;}
+.toast{background:var(--surf2);border-radius:8px;padding:10px 12px;border-left:3px solid var(--red);display:flex;gap:9px;align-items:flex-start;animation:slideIn .3s ease;pointer-events:all;box-shadow:0 4px 20px rgba(0,0,0,.6);}
+.toast.spike{border-color:var(--amber);}
+.toast.info{border-color:var(--cyan);}
+.toast-ico{font-size:15px;flex-shrink:0;margin-top:1px;}
+.toast-ttl{font-size:11px;font-weight:600;color:var(--txt);}
+.toast.spike .toast-ttl{color:var(--amber);}
+.toast.hypo  .toast-ttl{color:var(--red);}
+.toast.info  .toast-ttl{color:var(--cyan);}
+.toast-msg{font-size:10px;color:var(--txt2);margin-top:2px;line-height:1.4;}
+
+/* ── KEYFRAMES ── */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes pring{0%{box-shadow:0 0 0 0 rgba(0,212,255,.5)}70%{box-shadow:0 0 0 6px rgba(0,212,255,0)}100%{box-shadow:0 0 0 0 rgba(0,212,255,0)}}
+
+/* ── AUTO DEMO ── */
+.calib-step .s-timer{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--cyan);min-width:36px;text-align:right;flex-shrink:0;transition:color .3s;}
+.calib-step.done .s-timer{color:var(--green);}
+.calib-step.wait .s-timer{color:var(--txt3);}
+.fast-badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;color:var(--amber);letter-spacing:1px;padding:2px 8px;border:1px solid var(--amber);border-radius:10px;animation:blink .6s infinite;}
+@keyframes slideIn{from{transform:translateY(-8px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">β</div>
+    <div class="logo-name">βミルミル</div>
+  </div>
+  <div class="hdr-right">
+    <div class="clock" id="clock">--:--:--</div>
+    <button id="ble-btn">
+      <span class="ble-dot"></span>
+      <span id="ble-label">未接続</span>
+    </button>
+  </div>
+</header>
+
+<!-- PHASE ROW -->
+<div class="phase-row">
+  <span class="pbadge" id="ph-ble">① BLE接続</span>
+  <span class="pbadge" id="ph-temp">② 体温安定</span>
+  <span class="pbadge" id="ph-beta">③ 周期観測</span>
+  <span class="pbadge" id="ph-run">● 観測中</span>
+</div>
+
+<!-- TOASTS -->
+<div id="toast-container"></div>
+
+<!-- BLE MODAL -->
+<div id="ble-modal" style="display:none!important;">
+  <div class="modal">
+    <div class="modal-ttl">🔵 BLEデバイスをスキャン</div>
+    <div class="modal-sub">βミルミル対応デバイスを検索します</div>
+    <div class="scan-ind" id="scan-status"><span class="scan-dot"></span>スキャン中...</div>
+    <div class="dev-list" id="dev-list"></div>
+    <button class="btn" style="width:100%" onclick="closeBleModal()">キャンセル</button>
+  </div>
+</div>
+
+<!-- ── CALIBRATION SECTION ── -->
+<div id="calib-section">
+  <div class="sec-label">キャリブレーション <span class="fast-badge">⏩ AUTO</span></div>
+  <div class="calib-step wait" id="st-ble">
+    <div class="s-icon">①</div>
+    <div class="s-body">
+      <div class="s-title">BLE接続</div>
+      <div class="s-desc">デバイスとペアリング</div>
+      <div class="s-bar"><div class="s-fill" id="bar-ble"></div></div>
+    </div>
+    <div class="s-timer" id="tmr-ble">—</div>
+  </div>
+  <div class="calib-step wait" id="st-temp">
+    <div class="s-icon">②</div>
+    <div class="s-body">
+      <div class="s-title">体温安定待機</div>
+      <div class="s-desc">上腕内側の温度が安定するまで待機</div>
+      <div class="s-bar"><div class="s-fill" id="bar-temp"></div></div>
+    </div>
+    <div class="s-timer" id="tmr-temp">—</div>
+  </div>
+  <div class="calib-step wait" id="st-beta">
+    <div class="s-icon">③</div>
+    <div class="s-body">
+      <div class="s-title">β細胞動作周期観測</div>
+      <div class="s-desc">インスリンパルス周期（~300s）を検出</div>
+      <div class="s-bar"><div class="s-fill" id="bar-beta"></div></div>
+    </div>
+    <div class="s-timer" id="tmr-beta">—</div>
+  </div>
+</div>
+
+<!-- ══════════════ MONITOR SECTION ══════════════ -->
+<div id="monitor-section">
+
+  <!-- β余力バー -->
+  <div class="reserve-wrap">
+    <div class="res-row">
+      <div class="res-label">β余力</div>
+      <div class="res-value" id="res-val">—</div>
+    </div>
+    <div class="res-bar"><div class="res-fill" id="res-fill" style="width:72%"></div></div>
+  </div>
+
+  <!-- キャラクターアニメ -->
+  <div class="char-wrap">
+    <canvas id="beta-cv"></canvas>
+  </div>
+
+  <!-- PPGグラフ -->
+  <div class="ppg-wrap">
+    <div class="graph-hdr">
+      <div class="graph-ttl">糖とインスリンのバランスベースライン変動</div>
+      <div class="legend">
+        <div class="leg"><div class="leg-ln" style="background:#FF4560"></div>実測値</div>
+        <div class="leg"><div class="leg-ln" style="background:#26D7B4;border-top:2px dashed #26D7B4;background:transparent"></div>理想パターン</div>
+      </div>
+    </div>
+    <canvas id="ppg-cv" height="130"></canvas>
+  </div>
+
+  <!-- アラートバー -->
+  <div class="alert-bar ok" id="alert-bar">
+    <div class="ab-icon" id="ab-icon">✅</div>
+    <div class="ab-body">
+      <div class="ab-main" id="ab-main">β細胞 正常動作中</div>
+      <div class="ab-sub"  id="ab-sub">インスリン分泌パルスを観測しています</div>
+    </div>
+    <div class="ab-badge" id="ab-badge">正常</div>
+  </div>
+
+  <!-- 統計 -->
+  <div class="stats-wrap">
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-l">rl_n_inv</div><div class="stat-v" id="sv-rln">—</div></div>
+      <div class="stat"><div class="stat-l">TEMP°C</div><div class="stat-v" id="sv-temp">—</div></div>
+      <div class="stat"><div class="stat-l">HR bpm</div><div class="stat-v" id="sv-hr">—</div></div>
+      <div class="stat"><div class="stat-l">推定BG</div><div class="stat-v" id="sv-bg">—</div></div>
+    </div>
+  </div>
+
+  <!-- アラート設定 (折りたたみ) -->
+  <button class="col-toggle" onclick="toggleCol(this,'col-alert')">
+    <span>⚠ アラート設定 / データ出力</span>
+    <span class="col-icon">▼</span>
+  </button>
+  <div class="col-body" id="col-alert">
+    <div class="alert-set-row">
+      <label>スパイク速度 / 10min</label>
+      <input type="number" id="spike-th" value="15" min="1" max="50">
+      <span class="au">mg/dL</span>
+    </div>
+    <div class="alert-set-row">
+      <label>低血糖警告 下限</label>
+      <input type="number" id="hypo-th" value="70" min="40" max="100">
+      <span class="au">mg/dL</span>
+    </div>
+    <div class="alert-set-row">
+      <label>高血糖警告 上限</label>
+      <input type="number" id="hyper-th" value="180" min="120" max="300">
+      <span class="au">mg/dL</span>
+    </div>
+    <div class="btn-row" style="padding:12px 0 0;border:none;background:none;">
+      <button class="btn primary" onclick="dlCSV('all')">⬇ 全データ CSV</button>
+      <button class="btn" onclick="dlCSV('range')">⬇ 選択区間</button>
+      <button class="btn danger" onclick="clearData()">🗑</button>
+    </div>
+    <div class="data-row" style="padding:8px 0 0;background:none;border:none;">
+      <span id="rec-dot"></span>
+      <span id="data-cnt">記録: 0 件</span>
+    </div>
+  </div>
+
+</div><!-- /monitor-section -->
+
+<script>
+// ════════════════════════════════════════════
+//  GLOBALS
+// ════════════════════════════════════════════
+let connected=false, calibState='ble', displayRange='30m';
+let dataDB=[], simT=0, bgBase=100, bgVel=0, betaFireT=0;
+const betaPeriod=294+Math.random()*12;
+let alertCD={};
+let reserve=72, phase=2, charTime=0;
+
+// ── サンプリング設定 ──────────────────────────
+// 1サンプル = 2.5分 = 150シミュレーション秒
+// フルスケール = 6時間 = 144サンプル
+// SIM_SPEED: シミュ時間の加速係数（実時間×60 → 実2.5秒で1サンプル追加）
+const SAMPLE_INTERVAL = 150; // シミュ秒
+const DISPLAY_MAX     = 72;  // 3時間分（72サンプル × 2.5分）
+const SIM_SPEED       = 60;  // 加速倍率
+
+// ── 実測データ（beta_cell_video.htmlより） ──
+const SMOOTHED=[0.2943,0.3349,0.2864,0.2931,0.3322,0.4646,0.3253,0.3467,0.3056,0.3056,0.4135,0.4135,0.5102,0.5102,0.6521,0.6521,0.691,0.691,0.68,0.68,0.6364,0.6364,0.5977,0.5977,0.6468,0.6468,0.644,0.5911,0.543,0.597,0.6369,0.6541,0.6045,0.5372,0.5117,0.5838,0.6201,0.5224,0.5838,0.4931,0.5273,0.5016,0.5225,0.5097,0.4761,0.5318,0.5711,0.4869,0.4427,0.4666,0.3666,0.4084,0.3999,0.3729,0.3777,0.4136,0.408,0.3472,0.373,0.3363,0.3792,0.483];
+const N_DATA = SMOOTHED.length; // 62点
+
+// IDEAL: idealVal関数で生成
+function _idealVal(i){
+  const t=i/(N_DATA-1);let b;
+  if(t<0.38){const s=t/0.38;b=0.29+s*s*0.19;}
+  else if(t<0.58){const s=(t-0.38)/0.20;b=0.48+s*0.02;}
+  else{const s=(t-0.58)/0.42;b=0.50-s*0.21;}
+  const a=Math.max(0.004,(b-0.27)*0.16);
+  return b+(i%2===0?1:-1)*a;
+}
+const IDEAL_VALS = Array.from({length:N_DATA},(_,i)=>Math.round(_idealVal(i)*10000)/10000);
+
+// フェーズ定義
+const PHASES=[
+  {range:[1,5],  color:'#3ec9a7',phase:'安定期',         text:'インスリンパルスと血糖がバランスよく振動'},
+  {range:[6,6],  color:'#ef9f27',phase:'⚡ スパイク前の急上昇', text:'糖が急上昇 — β細胞が警戒態勢'},
+  {range:[7,8],  color:'#3ec9a7',phase:'安定期',         text:'一時的上昇が収まりバランスを回復'},
+  {range:[9,19], color:'#e24b4a',phase:'血糖スパイク急上昇', text:'振動が消えるほど血糖が急上昇'},
+  {range:[20,20],color:'#e24b4a',phase:'ピーク到達',     text:'β細胞がインスリンを限界まで放出'},
+  {range:[21,32],color:'#ef9f27',phase:'踊り場 — 過剰放出', text:'インスリン過剰により連続降下が始まる'},
+  {range:[33,45],color:'#a32d2d',phase:'乱れた降下',     text:'上昇→降下の繰り返しでβ細胞が疲弊'},
+  {range:[46,61],color:'#a32d2d',phase:'β細胞の疲弊',   text:'振動幅が縮小 — β細胞の体力が尽きかけています'},
+  {range:[62,62],color:'#ef9f27',phase:'⚡ 食後低血糖へ', text:'β細胞疲弊の典型的な末路 — 低血糖へ移行'},
+];
+function getDataPhase(idx1based){
+  for(const p of PHASES) if(idx1based>=p.range[0]&&idx1based<=p.range[1]) return p;
+  return PHASES[0];
+}
+
+let displayDB = [];          // グラフ描画用（最大144件）
+let lastSampleSimT = -SAMPLE_INTERVAL;
+let dataIdx = 0;             // SMOOTHEDの循環インデックス
+
+// プリロード: 観測開始時に過去100サンプル分を事前生成（SMOOTHED循環）
+function preloadDisplayDB(){
+  displayDB = [];
+  dataIdx = 0;
+  const COUNT = 100;
+  for(let i=COUNT; i>0; i--){
+    const di = ((COUNT - i) % N_DATA);
+    const rln = SMOOTHED[di];
+    const ideal = IDEAL_VALS[di];
+    const bgV = 80 + rln * 100;
+    const res = Math.max(15, Math.min(95, (rln - 0.25) / 0.5 * 100));
+    displayDB.push({rln, ideal, bg:bgV, res, ts: new Date(Date.now() - i*SAMPLE_INTERVAL*1000/SIM_SPEED).toISOString()});
+  }
+  dataIdx = COUNT % N_DATA;
+  lastSampleSimT = simT;
+}
+
+// ── CANVAS: CHARACTER
+const betaCv=document.getElementById('beta-cv');
+const bCtx=betaCv.getContext('2d');
+
+// ── CANVAS: PPG
+const ppgCv=document.getElementById('ppg-cv');
+const pCtx=ppgCv.getContext('2d');
+
+// Set character canvas size to match container width
+function resizeCvs(){
+  const W=betaCv.parentElement.clientWidth;
+  const H=Math.round(W*0.72); // slightly taller than before
+  betaCv.width=W; betaCv.height=H;
+  ppgCv.width=ppgCv.parentElement.clientWidth;
+  // height stays fixed from HTML attribute
+}
+window.addEventListener('resize',resizeCvs);
+resizeCvs();
+
+// ════════════════════════════════════════════
+//  CLOCK
+// ════════════════════════════════════════════
+setInterval(()=>document.getElementById('clock').textContent=new Date().toTimeString().slice(0,8),1000);
+
+// ════════════════════════════════════════════
+//  PHASE BADGES
+// ════════════════════════════════════════════
+function addPh(id,cls){document.getElementById(id).className='pbadge '+cls;}
+
+// ════════════════════════════════════════════
+//  BLE MODAL
+// ════════════════════════════════════════════
+const DEVS=[
+  {name:'βミルミル-001',mac:'AA:BB:CC:DD:EE:01',rssi:'-51 dBm'},
+  {name:'βミルミル-002',mac:'AA:BB:CC:DD:EE:02',rssi:'-68 dBm'},
+];
+
+// ── AUTO DEMO ──────────────────────────────────────
+let autoStarted = false;
+
+function setTimer(id, sec){ const el=document.getElementById(id); if(el) el.textContent=sec>0?sec+'s':'✓'; }
+
+function openBleModal(){ /* 自動版では手動操作無効 */ }
+function closeBleModal(){ /* unused */ }
+function connectDev(d){ /* unused */ }
+function disconnectBle(){
+  if(autoStarted) return; // 自動版では切断操作無効
+}
+
+function autoStart(){
+  if(autoStarted) return;
+  autoStarted = true;
+  document.getElementById('ble-btn').className='scanning';
+  document.getElementById('ble-label').textContent='スキャン中';
+  setTimer('tmr-ble', 2);
+  toast('info','🔵 スキャン中...','βミルミル対応デバイスを検索しています');
+  let t = 2;
+  const iv = setInterval(()=>{
+    t--; setTimer('tmr-ble', t);
+    if(t <= 0){
+      clearInterval(iv);
+      setTimeout(()=>{
+        const d = DEVS[0];
+        connected = true;
+        document.getElementById('ble-btn').className='connected';
+        document.getElementById('ble-label').textContent=d.name.replace('βミルミル-','#');
+        toast('info','🔗 接続完了',`${d.name} に接続しました`);
+        addPh('ph-ble','done');
+        document.getElementById('st-ble').className='calib-step done';
+        setTimer('tmr-ble', 0);
+        startCalib();
+      }, 600);
+    }
+  }, 1000);
+}
+
+// ════════════════════════════════════════════
+//  CALIBRATION
+// ════════════════════════════════════════════
+function startCalib(){
+  calibState='temp'; addPh('ph-temp','active');
+  document.getElementById('st-temp').className='calib-step active';
+  toast('info','🌡 体温安定待機','上腕内側の温度が安定するまで待機します');
+  const TOTAL=3; let t=TOTAL;
+  setTimer('tmr-temp', t);
+  const iv=setInterval(()=>{
+    t=Math.max(0,t-1); setTimer('tmr-temp', t);
+    document.getElementById('bar-temp').style.width=Math.round((TOTAL-t)/TOTAL*100)+'%';
+    if(t<=0){
+      clearInterval(iv);
+      document.getElementById('st-temp').className='calib-step done';
+      setTimer('tmr-temp', 0);
+      addPh('ph-temp','done');
+      startBetaCalib();
+    }
+  },1000);
+}
+function startBetaCalib(){
+  calibState='beta'; addPh('ph-beta','active');
+  document.getElementById('st-beta').className='calib-step active';
+  toast('info','🔬 β細胞周期観測','インスリンパルス周期を検出中...');
+  const TOTAL=5; let t=TOTAL;
+  setTimer('tmr-beta', t);
+  const iv=setInterval(()=>{
+    t=Math.max(0,t-1); setTimer('tmr-beta', t);
+    document.getElementById('bar-beta').style.width=Math.round((TOTAL-t)/TOTAL*100)+'%';
+    if(t<=0){
+      clearInterval(iv);
+      document.getElementById('st-beta').className='calib-step done';
+      setTimer('tmr-beta', 0);
+      addPh('ph-beta','done'); addPh('ph-run','active');
+      calibState='running';
+      preloadDisplayDB();
+      document.getElementById('calib-section').style.display='none';
+      document.getElementById('monitor-section').style.display='block';
+      document.getElementById('rec-dot').style.display='inline-block';
+      resizeCvs();
+      toast('info','✅ 観測開始',`パルス周期 ${betaPeriod.toFixed(0)}s 検出 — 観測を開始します`);
+    }
+  },1000);
+}
+
+// ════════════════════════════════════════════
+//  CHARACTER: β細胞 (ported from βキャラクタ.html)
+// ════════════════════════════════════════════
+class Glucose{
+  constructor(){
+    const W=betaCv.width,H=betaCv.height;
+    this.x=W+20;
+    this.y=H*0.2+Math.random()*H*0.6;
+    this.vx=-(1.8+Math.random()*2);
+    this.vy=(Math.random()-.5)*1.2;
+    this.r=Math.round(H*0.037)+Math.random()*4;
+    this.a=Math.random()*Math.PI*2;
+    this.spin=(Math.random()-.5)*.06;
+    this.alive=true;this.hit=false;this.hitT=0;this.scared=false;this.exited=false;
+  }
+  update(){
+    const H=betaCv.height;
+    this.x+=this.vx; this.y+=this.vy; this.a+=this.spin;
+    if(this.hit&&!this.exited){this.vy=this.y<H*.5?-2.5:2.5;}
+    if((this.y<H*.18||this.y>H*.82)&&this.hit){this.exited=true;this.vx*=.6;}
+    if(this.hit){this.hitT--;if(this.hitT<=0)this.hit=false;}
+    if(this.x<-40)this.alive=false;
+  }
+  draw(){
+    const r=this.r;
+    bCtx.save();bCtx.translate(this.x,this.y);bCtx.rotate(this.a);
+    bCtx.globalAlpha=this.hit?.6:1;
+    bCtx.beginPath();
+    for(let i=0;i<6;i++){const a=i*Math.PI/3;i===0?bCtx.moveTo(Math.cos(a)*r,Math.sin(a)*r):bCtx.lineTo(Math.cos(a)*r,Math.sin(a)*r);}
+    bCtx.closePath();
+    bCtx.fillStyle=this.hit?'#F09595':'#FAEEDA';bCtx.fill();
+    bCtx.strokeStyle='#BA7517';bCtx.lineWidth=1.5;bCtx.stroke();
+    const er=r*.2;
+    bCtx.fillStyle='#633806';
+    bCtx.beginPath();bCtx.arc(-r*.25,-r*.18,er,0,Math.PI*2);bCtx.fill();
+    bCtx.beginPath();bCtx.arc(r*.25,-r*.18,er,0,Math.PI*2);bCtx.fill();
+    bCtx.strokeStyle='#633806';bCtx.lineWidth=1.4;bCtx.lineCap='round';
+    if(this.scared||this.hit){bCtx.beginPath();bCtx.arc(0,r*.35,r*.22,1.1*Math.PI,1.9*Math.PI);bCtx.stroke();}
+    else{bCtx.beginPath();bCtx.arc(0,r*.2,r*.22,.1*Math.PI,.9*Math.PI);bCtx.stroke();}
+    bCtx.restore();
+  }
+}
+
+let glucoseList=[], insulinParticles=[];
+
+function drawVesselWalls(){
+  const W=betaCv.width,H=betaCv.height;
+  bCtx.strokeStyle='#3a4a5c';bCtx.lineWidth=6;
+  bCtx.beginPath();bCtx.moveTo(0,H*.15);bCtx.lineTo(W,H*.15);bCtx.stroke();
+  bCtx.beginPath();bCtx.moveTo(0,H*.85);bCtx.lineTo(W,H*.85);bCtx.stroke();
+}
+
+function drawBetaCell(){
+  const W=betaCv.width,H=betaCv.height;
+  const sc=H/300;
+  const cx=W*.09, cy=H*.5;
+  bCtx.save();bCtx.translate(cx,cy);bCtx.scale(sc,sc);
+  const sp=-22,tp=-54,md=-8,bt=46,ur=34,lr=48;
+  const isTired=phase>=4||reserve<30;
+  const isPanic=phase===3;
+  let bodyColor='#1D9E75',bellyColor='#9FE1CB';
+  if(reserve<30||isTired){bodyColor='#888780';bellyColor='#D3D1C7';}
+  else if(reserve<50||isPanic){bodyColor='#E24B4A';bellyColor='#F7C1C1';}
+  else if(reserve<75){bodyColor='#EF9F27';bellyColor='#FAEEDA';}
+  // belly (light)
+  bCtx.fillStyle=bellyColor;
+  bCtx.beginPath();bCtx.moveTo(sp,bt);bCtx.lineTo(sp,tp);
+  bCtx.bezierCurveTo(sp,tp-14,ur,tp-14,ur,tp+18);
+  bCtx.bezierCurveTo(ur,md,sp,md,sp,md);
+  bCtx.bezierCurveTo(sp,md,lr+8,md,lr,md+30);
+  bCtx.bezierCurveTo(lr,bt+2,sp,bt+2,sp,bt);bCtx.fill();
+  // body
+  bCtx.fillStyle=bodyColor;
+  bCtx.beginPath();bCtx.moveTo(sp,bt);bCtx.lineTo(sp,tp);
+  bCtx.bezierCurveTo(sp,tp-14,ur,tp-14,ur,tp+18);
+  bCtx.bezierCurveTo(ur,md,sp,md,sp,md);bCtx.fill();
+  // eyes
+  bCtx.fillStyle=isTired?'#333':'#222';
+  bCtx.beginPath();bCtx.ellipse(-8,-36,5,5,0,0,Math.PI*2);bCtx.fill();
+  bCtx.beginPath();bCtx.ellipse(8,-36,5,5,0,0,Math.PI*2);bCtx.fill();
+  // mouth
+  bCtx.strokeStyle='#222';bCtx.lineWidth=2;
+  if(isTired){bCtx.beginPath();bCtx.arc(0,-26,7,1.2*Math.PI,1.8*Math.PI);bCtx.stroke();}
+  else{bCtx.beginPath();bCtx.arc(0,-26,7,.2*Math.PI,.8*Math.PI);bCtx.stroke();}
+  // pulse indicator
+  const pulse=Math.abs(Math.sin(charTime*(phase===3?10:6)));
+  bCtx.fillStyle=phase>=2?'#ff9944':'#5DCAA5';
+  bCtx.beginPath();bCtx.arc(lr+5,md+28,4+pulse*2,0,Math.PI*2);bCtx.fill();
+  bCtx.restore();
+}
+
+function updateInsulinParticles(){
+  const W=betaCv.width,H=betaCv.height;
+  const sc=H/300;
+  const fireProbability=(reserve/100)*.75;
+  if(phase<=3&&Math.random()<fireProbability){
+    const angle=(Math.random()-.5)*(Math.PI/2);
+    const speed=(6.5+Math.random()*2)*sc;
+    insulinParticles.push({
+      x:W*.09+(82)*sc,
+      y:H*.5+(20)*sc+(Math.random()-.5)*18*sc,
+      vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,life:45
+    });
+  }
+  for(let i=insulinParticles.length-1;i>=0;i--){
+    const p=insulinParticles[i];
+    p.x+=p.vx; p.y+=p.vy; p.life--;
+    if(p.y<H*.16||p.y>H*.84){p.vy*=-1;p.y=p.y<H*.16?H*.16:H*.84;}
+    if(p.life<=0||p.x>W+20){insulinParticles.splice(i,1);continue;}
+    bCtx.fillStyle=`rgba(93,202,165,${p.life/40})`;
+    bCtx.beginPath();bCtx.arc(p.x,p.y,3.2*H/300,0,Math.PI*2);bCtx.fill();
+  }
+}
+
+function checkCollisions(){
+  for(let i=glucoseList.length-1;i>=0;i--){
+    const g=glucoseList[i];if(!g.alive)continue;
+    for(let j=insulinParticles.length-1;j>=0;j--){
+      const ins=insulinParticles[j];
+      const dx=g.x-ins.x,dy=g.y-ins.y;
+      if(Math.sqrt(dx*dx+dy*dy)<g.r+4){
+        g.hit=true;g.hitT=30;g.scared=true;
+        g.vy=g.y<betaCv.height*.5?-2.8:2.8;g.vx=0.6;
+        insulinParticles.splice(j,1);break;
+      }
+    }
+  }
+}
+
+function drawCharacter(){
+  const W=betaCv.width,H=betaCv.height;
+  bCtx.clearRect(0,0,W,H);
+  drawVesselWalls();
+  // glucose spawn rate scales with reserve (low reserve = more glucose piling up)
+  const spawnRate=0.1+(1-reserve/100)*0.4;
+  if(Math.random()<spawnRate) glucoseList.push(new Glucose());
+  for(let i=glucoseList.length-1;i>=0;i--){
+    const g=glucoseList[i];g.update();g.draw();if(!g.alive)glucoseList.splice(i,1);
+  }
+  drawBetaCell();
+  updateInsulinParticles();
+  checkCollisions();
+}
+
+// ════════════════════════════════════════════
+//  PPG GRAPH — 6時間フルスケール、右詰めスクロール
+//  Y軸: 0.25〜0.75（SMOOTHEDデータ実測値レンジ）
+// ════════════════════════════════════════════
+function drawPPG(){
+  const W=ppgCv.width, H=ppgCv.height;
+  pCtx.clearRect(0,0,W,H);
+  if(displayDB.length<2 || calibState!=='running') return;
+
+  const pts = displayDB.slice(-DISPLAY_MAX);
+  const CELL_W = W / (DISPLAY_MAX - 1);
+  const xOf = i => W - (pts.length - 1 - i) * CELL_W;
+
+  // Y軸スケール: 0.25〜0.75
+  const Y_MIN = 0.25, Y_MAX = 0.75;
+  const graphH = H * 0.82;
+  const ynorm = v => graphH - (Math.max(Y_MIN, Math.min(Y_MAX, v)) - Y_MIN) / (Y_MAX - Y_MIN) * graphH;
+
+  // ── グリッド ─────────────────────────────
+  pCtx.strokeStyle='rgba(30,39,64,.85)'; pCtx.lineWidth=1;
+  // 縦線（30分ごと = 12サンプルごと = 6等分）
+  for(let h=0;h<=6;h++){
+    const x=W*h/6;
+    pCtx.beginPath(); pCtx.moveTo(x,0); pCtx.lineTo(x,graphH+2); pCtx.stroke();
+  }
+  // 横線（Y軸 0.25/0.375/0.5/0.625/0.75）
+  [0.25,0.375,0.5,0.625,0.75].forEach(v=>{
+    const y=ynorm(v);
+    pCtx.beginPath(); pCtx.moveTo(0,y); pCtx.lineTo(W,y); pCtx.stroke();
+  });
+
+  // ── Y軸ラベル ───────────────────────────
+  pCtx.font='8px JetBrains Mono'; pCtx.textAlign='left'; pCtx.fillStyle='rgba(58,80,112,.85)';
+  [0.75,0.625,0.5,0.375,0.25].forEach(v=>pCtx.fillText(v.toFixed(2),2,ynorm(v)+3));
+
+  // ── X軸時間ラベル（30分刻み）────────────
+  pCtx.font='8px JetBrains Mono'; pCtx.fillStyle='rgba(58,80,112,.9)'; pCtx.textAlign='center';
+  ['-3h','-2.5h','-2h','-1.5h','-1h','-30m','now'].forEach((lbl,i)=>{
+    pCtx.fillText(lbl, W*i/6, H-2);
+  });
+
+  // ── 理想パターン（緑破線） ──────────────
+  pCtx.beginPath(); pCtx.strokeStyle='rgba(38,215,180,.65)'; pCtx.lineWidth=1.5; pCtx.setLineDash([5,4]);
+  let started=false;
+  pts.forEach((p,i)=>{
+    const x=xOf(i); if(x<0) return;
+    const y=ynorm(p.ideal);
+    if(!started){pCtx.moveTo(x,y);started=true;} else pCtx.lineTo(x,y);
+  });
+  pCtx.stroke(); pCtx.setLineDash([]);
+
+  // ── 実測値 塗りつぶし（赤グラデ） ──────
+  const grad=pCtx.createLinearGradient(0,0,0,graphH);
+  grad.addColorStop(0,'rgba(255,69,96,.20)'); grad.addColorStop(1,'rgba(255,69,96,0)');
+  pCtx.fillStyle=grad; pCtx.beginPath(); started=false;
+  pts.forEach((p,i)=>{
+    const x=xOf(i); if(x<0) return;
+    const y=ynorm(p.rln);
+    if(!started){pCtx.moveTo(x,graphH);pCtx.lineTo(x,y);started=true;} else pCtx.lineTo(x,y);
+  });
+  pCtx.lineTo(W,graphH); pCtx.closePath(); pCtx.fill();
+
+  // ── 実測値 ライン（赤） ─────────────────
+  pCtx.beginPath(); pCtx.strokeStyle='rgba(255,69,96,.9)'; pCtx.lineWidth=1.8; started=false;
+  pts.forEach((p,i)=>{
+    const x=xOf(i); if(x<0) return;
+    const y=ynorm(p.rln);
+    if(!started){pCtx.moveTo(x,y);started=true;} else pCtx.lineTo(x,y);
+  });
+  pCtx.stroke();
+
+  // ── 最新値ドット & ラベル ───────────────
+  const last=pts[pts.length-1];
+  const lx=xOf(pts.length-1), ly=ynorm(last.rln);
+  pCtx.beginPath(); pCtx.arc(lx,ly,4,0,Math.PI*2); pCtx.fillStyle='#FF4560'; pCtx.fill();
+  pCtx.font='600 9px JetBrains Mono'; pCtx.fillStyle='rgba(255,69,96,.95)'; pCtx.textAlign='right';
+  pCtx.fillText(last.rln.toFixed(4), W-2, ly-8);
+
+  // ── サンプル数 ──────────────────────────
+  pCtx.font='8px JetBrains Mono'; pCtx.fillStyle='rgba(58,80,112,.7)'; pCtx.textAlign='right';
+  pCtx.fillText(`${pts.length}/${DISPLAY_MAX}pts`, W-2, H-2);
+}
+
+// ════════════════════════════════════════════
+//  ALERT BAR UPDATE
+// ════════════════════════════════════════════
+function updateAlertBar(r){
+  const bar=document.getElementById('alert-bar');
+  const icon=document.getElementById('ab-icon');
+  const main=document.getElementById('ab-main');
+  const sub=document.getElementById('ab-sub');
+  const badge=document.getElementById('ab-badge');
+
+  // PHASESに基づくアラート（dataIdxは現在の循環インデックス 0-based → 1-based）
+  const phaseIdx = ((dataIdx - 1 + N_DATA) % N_DATA) + 1;
+  const ph = getDataPhase(phaseIdx);
+
+  // 危険度分類
+  const isDanger = ph.color==='#e24b4a'||ph.color==='#a32d2d';
+  const isWarn   = ph.color==='#ef9f27';
+
+  bar.className = isDanger ? 'alert-bar danger' : isWarn ? 'alert-bar warn' : 'alert-bar ok';
+  icon.textContent = isDanger ? '⚡' : isWarn ? '⚠' : '✅';
+  main.textContent = ph.phase;
+  sub.textContent  = ph.text;
+  badge.textContent = isDanger ? '注意' : isWarn ? '警告' : '正常';
+}
+
+// ════════════════════════════════════════════
+//  SIMULATION
+// ════════════════════════════════════════════
+function simulate(dt){
+  const t=simT;
+  const hr=62+6*Math.sin(t/50)+(Math.random()-.5)*2;
+  const hp=60/hr,ph2=(t%hp)/hp;
+  let ppg=0;
+  if(ph2<.15)ppg=ph2/.15;
+  else if(ph2<.25)ppg=1-(ph2-.15)/.1*.35;
+  else if(ph2<.35)ppg=.65+(ph2-.25)/.1*.15;
+  else if(ph2<.45)ppg=.80-(ph2-.35)/.1*.80;
+  else ppg=Math.max(0,-.05*(ph2-.45));
+  ppg+=(Math.random()-.5)*.04;
+
+  const betaPhase=(t%betaPeriod)/betaPeriod;
+  const betaSig=.5+.5*Math.sin(betaPhase*2*Math.PI);
+  const rln=betaSig+(Math.random()-.5)*.08;
+  const rln_c=rln-.0777-1.40*(Math.sin(t/180)*.06);
+  const temp=36.5+.3*Math.sin(t/400)+(Math.random()-.5)*.02;
+
+  bgVel+=(rln_c-.5)*.08+(Math.random()-.5)*.03;
+  bgVel*=.92;
+  bgBase+=bgVel*dt;
+  bgBase=Math.max(55,Math.min(280,bgBase));
+
+  // reserve: driven by rln_c (high rl_n_inv = good β function)
+  reserve=Math.max(10,Math.min(100,reserve+(rln_c-.45)*2*dt+(Math.random()-.5)*.3));
+
+  const act_n=bgBase/180;
+  const row={t,ppg,rln,rln_c,act_n,temp,hr,bg:bgBase,res:reserve,ts:new Date().toISOString()};
+
+  if(calibState==='running'){
+    dataDB.push(row);
+    if(dataDB.length>43200) dataDB.shift();
+
+    // ── displayDB: 2.5分（SAMPLE_INTERVAL）ごとに1サンプル追加（SMOOTHED循環）
+    if(simT - lastSampleSimT >= SAMPLE_INTERVAL){
+      lastSampleSimT = simT;
+      const di = dataIdx % N_DATA;
+      const rlnVal  = SMOOTHED[di];
+      const idealV  = IDEAL_VALS[di];
+      const bgV     = 80 + rlnVal * 100;
+      const resV    = Math.max(15, Math.min(95, (rlnVal - 0.25) / 0.5 * 100));
+      reserve = resV;
+      displayDB.push({rln:rlnVal, ideal:idealV, bg:bgV, res:resV, ts:new Date().toISOString()});
+      if(displayDB.length > DISPLAY_MAX) displayDB.shift();
+      dataIdx++;
+    }
+
+    updateStats(row);
+    checkAlerts(row);
+    updateAlertBar(row);
+  }
+  simT+=dt;
+}
+
+function updateStats(r){
+  // Reserve: displayDBの最新サンプルから
+  const latest = displayDB.length > 0 ? displayDB[displayDB.length-1] : r;
+  const resPct = Math.round(latest.res);
+  document.getElementById('res-val').textContent=resPct+'%';
+  document.getElementById('res-fill').style.width=resPct+'%';
+  const resEl=document.getElementById('res-fill');
+  resEl.style.background=resPct>=75?'linear-gradient(90deg,#1D9E75,#5DCAA5)':resPct>=50?'linear-gradient(90deg,#B87800,#EF9F27)':'linear-gradient(90deg,#A01020,#E24B4A)';
+  document.getElementById('res-val').style.color=resPct>=75?'#5DCAA5':resPct>=50?'#EF9F27':'#FF4560';
+
+  document.getElementById('sv-rln').textContent=(latest.rln||r.rln).toFixed(4);
+  document.getElementById('sv-temp').textContent=r.temp.toFixed(2);
+  document.getElementById('sv-hr').textContent=r.hr.toFixed(0);
+  document.getElementById('sv-bg').textContent=(latest.bg||r.bg).toFixed(0);
+  document.getElementById('data-cnt').textContent=`記録: ${displayDB.length} 件`;
+}
+
+// ════════════════════════════════════════════
+//  ALERTS (toast)
+// ════════════════════════════════════════════
+function checkAlerts(r){
+  const sT=parseInt(document.getElementById('spike-th').value)||15;
+  const hyoT=parseInt(document.getElementById('hypo-th').value)||70;
+  const hyperT=parseInt(document.getElementById('hyper-th').value)||180;
+  const now=Date.now();
+  if(r.bg<hyoT&&(!alertCD.hypo||now-alertCD.hypo>60000)){alertCD.hypo=now;toast('hypo','⚡ 低血糖注意',`推定血糖 ${r.bg.toFixed(0)} mg/dL`);}
+  if(r.bg>hyperT&&(!alertCD.hyper||now-alertCD.hyper>60000)){alertCD.hyper=now;toast('spike','📈 高血糖注意',`推定血糖 ${r.bg.toFixed(0)} mg/dL`);}
+  if(dataDB.length>300){
+    const vel=r.bg-dataDB[dataDB.length-300].bg;
+    if(Math.abs(vel)>sT&&(!alertCD.spike||now-alertCD.spike>60000)){alertCD.spike=now;toast('spike',`📡 スパイク${vel>0?'急上昇':'急降下'}`,`10min変化: ${vel>0?'+':''}${vel.toFixed(1)} mg/dL`);}
+  }
+}
+function toast(type,title,msg){
+  const el=document.createElement('div');el.className=`toast ${type}`;
+  el.innerHTML=`<div class="toast-ico">${type==='hypo'?'🔴':type==='spike'?'🟡':'🔵'}</div><div><div class="toast-ttl">${title}</div><div class="toast-msg">${msg}</div></div>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(()=>el.remove(),5500);
+}
+
+// ════════════════════════════════════════════
+//  COLLAPSIBLE
+// ════════════════════════════════════════════
+function toggleCol(btn,id){
+  document.getElementById(id).classList.toggle('open');
+  btn.querySelector('.col-icon').classList.toggle('open');
+}
+
+// ════════════════════════════════════════════
+//  CSV
+// ════════════════════════════════════════════
+function dlCSV(mode){
+  if(!dataDB.length){toast('info','データなし','記録がありません');return;}
+  let rows=dataDB;
+  if(mode==='range'){const sec=1800;const n=Math.min(dataDB.length,Math.ceil(sec/0.05));rows=dataDB.slice(dataDB.length-n);}
+  const hdr='timestamp,t_sec,ppg_raw,rl_n_inv,rln_corr,temp_C,HR_bpm,bg_est_mgdL,act_n,reserve_pct\n';
+  const body=rows.map(r=>`${r.ts},${r.t.toFixed(2)},${r.ppg.toFixed(4)},${r.rln.toFixed(4)},${r.rln_c.toFixed(4)},${r.temp.toFixed(3)},${r.hr.toFixed(1)},${r.bg.toFixed(1)},${r.act_n.toFixed(4)},${r.res.toFixed(1)}`).join('\n');
+  const blob=new Blob([hdr+body],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download=`beta_${mode}_${new Date().toISOString().slice(0,19).replace(/[T:]/g,'-')}.csv`;
+  a.click();URL.revokeObjectURL(url);
+  toast('info','⬇ DL完了',`${rows.length}件をCSV出力しました`);
+}
+function clearData(){
+  if(!confirm('全データを消去しますか？'))return;
+  dataDB=[];document.getElementById('data-cnt').textContent='記録: 0 件';
+  toast('info','🗑 消去完了','データを消去しました');
+}
+
+// ════════════════════════════════════════════
+//  MAIN LOOP
+// ════════════════════════════════════════════
+let lastT=null;
+function loop(now){
+  if(lastT===null)lastT=now;
+  const realDt=Math.min((now-lastT)/1000,.05); // リアルタイムdt（キャラクタ用）
+  lastT=now;
+  charTime+=realDt;                 // キャラクタアニメはリアルタイム
+  simulate(realDt * SIM_SPEED);    // シミュ時間を60倍加速
+  if(calibState==='running'){drawCharacter();drawPPG();}
+  requestAnimationFrame(loop);
+setTimeout(()=>autoStart(), 1000);
+}
+requestAnimationFrame(loop);
+setTimeout(()=>autoStart(), 1000);
+</script>
+</body>
+</html>
